@@ -7,6 +7,7 @@ typedef enum
     SENSOR_LEFT_ACTIVE,
     SENSOR_RIGHT_ACTIVE,
     SENSOR_BOTH_ACTIVE,
+    SENSOR_STATE_NUM,
 }Sensor_State_t;
 
 void Sensor_Init(void);

@@ -8,28 +8,12 @@
 
 static Event const entryEvt = { ENTRY_EVENT };
 static Event const exitEvt  = { EXIT_EVENT };
-Fsm my_fsm = {
-  .state = Lighting_OFF,
-  .next_state = Lighting_OFF,
-};
+LightFSM my_fsm;
 
-void Fsm_dispatch(Fsm * me, Event const * const e) {
-    State status;
-    StateHandler prev_state = me->state; /* save for later */
-
-    status = (*me->state)(me, e);
-    
-    if (status == TRAN_STATUS) { /* transition taken? */
-        (*prev_state)(me, &exitEvt);
-        me->state = me->next_state;
-        (*me->state)(me, &entryEvt);
-    }
-}
 
 void setup() {
   // put your setup code here, to run once:
   Sensor_Init();
-  led_controller_init();
   Serial.begin(9600);
 }
 
@@ -49,10 +33,11 @@ void loop() {
   else
   {
     ev = translator(Sensor_GetState());
+    //Serial.println(ev);
 
   }
 
-  Fsm_dispatch(&my_fsm, &ev);
+  my_fsm.dispatch(ev);
   // put your main code here, to run repeatedly:
   delay(10);
 }

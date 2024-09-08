@@ -59,6 +59,7 @@ Sensor_State_t Sensor_GetState(void)
     )
     {
         ret_val = SENSOR_RIGHT_ACTIVE;
+        
     }
     else if(
         (sensor_signals[LEFT_SENSOR_POS].current_signal_state == LOW) && 

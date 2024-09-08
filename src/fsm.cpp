@@ -5,182 +5,153 @@
 
 #define MODE_CH_TIMEOUT 1500
 
-State Lighting_LIGHT_POWER_SETTING(Fsm *me, Event const * const e);
-State Lighting_LIGHT_BRIGHTENING(Fsm *me, Event const * const e);
-State Lighting_LIGHT_DIMMING(Fsm *me, Event const * const e);
 
-State Lighting_OFF(Fsm *me, Event const * const e)
+LightFSM::LightFSM() : Fsm((State)&LightFSM::Lighting_OFF) 
 {
-    
-    State ret_val;
-    switch(*e)
+
+}     
+
+void LightFSM::Lighting_OFF(Event ev)
+{
+    switch(ev)
     {
         case ENTRY_EVENT:
-            led_off();
-            ret_val = HANDLED_STATUS;
+            Serial.println("LED TURNING OFF");
+            led_ctrl.led_off();
+
         break;
 
-        case SENSOR_BOTH_ACTIVE:
-            me->next_state = Lighting_TURNING;
-            ret_val = TRAN_STATUS;
+        case (Event)SENSOR_BOTH_ACTIVE:
+            TRAN(&LightFSM::Lighting_TURNING);
         break;
 
         default:
-            ret_val = IGNORED_STATUS;
         break; 
     }
-    return ret_val;
 }
 
-State Lighting_TURNING(Fsm *me, Event const * const e)
+void LightFSM::Lighting_TURNING(Event ev)
 {
-    State ret_val;
-    switch(*e)
+    switch(ev)
     {
-        case SENSOR_IDLE:
-
-            me->next_state = Lighting_ON;
-            ret_val = TRAN_STATUS;
+        case (Event)SENSOR_IDLE:
+            TRAN(&LightFSM::Lighting_ON);
         break;
 
         default:
-            ret_val = IGNORED_STATUS;
         break; 
     }
-
-    return ret_val;
 }
 
-State Lighting_ON(Fsm *me, Event const * const e)
+void LightFSM::Lighting_ON(Event ev)
 {
-    State ret_val;
-    switch(*e)
+    switch(ev)
     {
         case ENTRY_EVENT:
-            led_on();
-            ret_val = HANDLED_STATUS;
+            Serial.println("LED TURNING ON");
+            led_ctrl.led_on();
         break;
 
-        case SENSOR_BOTH_ACTIVE:
-            me->next_state = Lighting_LIGHT_MODE_CHANGE;
-            ret_val = TRAN_STATUS;
+        case (Event)SENSOR_BOTH_ACTIVE:
+            TRAN(&LightFSM::Lighting_LIGHT_MODE_CHANGE);
         break;
 
         default:
-            ret_val = IGNORED_STATUS;
         break; 
     }
-    return ret_val;
 }
 
-State Lighting_LIGHT_MODE_CHANGE(Fsm *me, Event const * const e)
+void LightFSM::Lighting_LIGHT_MODE_CHANGE(Event ev)
 {
-    State ret_val;
-    switch(*e)
+    switch(ev)
     {
         case ENTRY_EVENT:
+            Serial.println("MODE CHANGE");
             timer_activate(MODE_CH_TIMEOUT);
-            ret_val = HANDLED_STATUS;   
         break;
-        case SENSOR_IDLE:
-            me->next_state = Lighting_OFF;
-            ret_val = TRAN_STATUS;
+        case (Event)SENSOR_IDLE:
+            TRAN(&LightFSM::Lighting_OFF);
         break;
 
         case EXIT_EVENT:
-            timer_deactivate();
-            led_blink();
-            ret_val = HANDLED_STATUS;            
+            timer_deactivate();     
         break;
 
         case TIMEOUT:
-            me->next_state = Lighting_LIGHT_POWER_SETTING;
-            ret_val = TRAN_STATUS;
+            led_ctrl.led_blink(); 
+            TRAN(&LightFSM::Lighting_LIGHT_POWER_SETTING);
         break;
 
         default:
-            ret_val = IGNORED_STATUS;
         break; 
     }
-    return ret_val;
 }
 
-State Lighting_LIGHT_POWER_SETTING(Fsm *me, Event const * const e)
+void LightFSM::Lighting_LIGHT_POWER_SETTING(Event ev)
 {
-    State ret_val;
-    switch(*e)
+    switch(ev)
     {
         case ENTRY_EVENT:
-
-            ret_val = HANDLED_STATUS;   
+            Serial.println("MODE POWER SETTING");
         break;
-        case SENSOR_IDLE:
+        case (Event)SENSOR_IDLE:
             timer_activate(MODE_CH_TIMEOUT);
-            ret_val = HANDLED_STATUS;
         break;
 
-        case SENSOR_LEFT_ACTIVE:
-            me->next_state = Lighting_LIGHT_BRIGHTENING;
-            ret_val = TRAN_STATUS;
+        case (Event)SENSOR_LEFT_ACTIVE:
+            TRAN(&LightFSM::Lighting_LIGHT_BRIGHTENING);
         break;
 
-        case SENSOR_RIGHT_ACTIVE:
-            me->next_state = Lighting_LIGHT_DIMMING;
-            ret_val = TRAN_STATUS;
+        case (Event)SENSOR_RIGHT_ACTIVE:
+            TRAN(&LightFSM::Lighting_LIGHT_DIMMING);
         break;
 
         case EXIT_EVENT:
-            timer_deactivate();
-            ret_val = HANDLED_STATUS;            
+            timer_deactivate();        
         break;
 
         case TIMEOUT:
-            led_blink();
-            me->next_state = Lighting_ON;
-            ret_val = TRAN_STATUS;
+            led_ctrl.led_blink();
+            TRAN(&LightFSM::Lighting_ON);
         break;
 
         default:
             timer_deactivate();
-            ret_val = IGNORED_STATUS;
         break; 
     }
-    return ret_val;
 }
 
-State Lighting_LIGHT_DIMMING(Fsm *me, Event const * const e)
+void LightFSM::Lighting_LIGHT_DIMMING(Event ev)
 {
-    State ret_val;
-    switch(*e)
+    switch(ev)
     {
-        case SENSOR_IDLE:
-            me->next_state = Lighting_LIGHT_POWER_SETTING;
-            ret_val = TRAN_STATUS;
+        case ENTRY_EVENT:
+            Serial.println("MODE DIMMING");
+        break;
+        case (Event)SENSOR_IDLE:
+            TRAN(&LightFSM::Lighting_LIGHT_POWER_SETTING);
         break;
 
         default:
-            led_dimming();
-            ret_val = IGNORED_STATUS;
+            led_ctrl.led_dimming();
         break; 
     }
-    return ret_val;
 }
 
-State Lighting_LIGHT_BRIGHTENING(Fsm *me, Event const * const e)
+void LightFSM::Lighting_LIGHT_BRIGHTENING(Event ev)
 {
-    State ret_val;
-   // Serial.println("BRIGHTENING");
-    switch(*e)
+
+    switch(ev)
     {
-        case SENSOR_IDLE:
-            me->next_state = Lighting_LIGHT_POWER_SETTING;
-            ret_val = TRAN_STATUS;
+        case ENTRY_EVENT:
+            Serial.println("MODE BRIGHTENING");
+        break;
+        case (Event)SENSOR_IDLE:
+            TRAN(&LightFSM::Lighting_LIGHT_POWER_SETTING);
         break;
 
         default:
-            led_brightening();
-            ret_val = IGNORED_STATUS;
+            led_ctrl.led_brightening();
         break; 
     }
-    return ret_val;
 }

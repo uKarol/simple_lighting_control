@@ -2,26 +2,47 @@
 #define FSM_H
 
 #include "sensor.h"
+#include "led_controller.h"
 
 typedef enum
 {
-  ENTRY_EVENT = SENSOR_BOTH_ACTIVE+1, 
+  ENTRY_EVENT = SENSOR_STATE_NUM, 
   TIMEOUT,
   EXIT_EVENT,
 }Event;
-
-typedef enum { TRAN_STATUS, HANDLED_STATUS, IGNORED_STATUS, INIT_STATUS } State;
-typedef struct Fsm Fsm; /* forward declaration */
-typedef State (*StateHandler)(Fsm * me, Event const * const e);
-
-struct Fsm {
-    StateHandler state; /* the "state variable" */
-    StateHandler next_state;
+class Fsm {
+public:
+   typedef void(Fsm::*State)(Event ev);
+   Fsm(State initial) : myState(initial) {}                 
+   void init() { (this->*myState)(ENTRY_EVENT); }
+   void dispatch(Event ev) { (this->*myState)(ev); }
+protected:
+   void tran(State target) { 
+      dispatch(EXIT_EVENT);   
+      myState = target; 
+      dispatch(ENTRY_EVENT);
+   }
+   #define TRAN(target_) tran(static_cast<State>(target_))
+protected:   
+   State myState;
 };
 
-State Lighting_ON(Fsm *me, Event const * const e);
-State Lighting_OFF(Fsm *me, Event const * const e);
-State Lighting_TURNING(Fsm *me, Event const * const e);
-State Lighting_LIGHT_MODE_CHANGE(Fsm *me, Event const * const e);
 
-#endif
+class LightFSM : public Fsm {
+public:
+   LightFSM();
+
+private:
+   LedController led_ctrl;
+   void Lighting_OFF(Event ev);
+   void Lighting_TURNING(Event ev);
+   void Lighting_ON(Event ev);
+   void Lighting_LIGHT_MODE_CHANGE(Event ev);
+   void Lighting_LIGHT_POWER_SETTING(Event ev);
+   void Lighting_LIGHT_DIMMING(Event ev);
+   void Lighting_LIGHT_BRIGHTENING(Event ev);
+};
+
+
+
+#endif  // FSM_H
